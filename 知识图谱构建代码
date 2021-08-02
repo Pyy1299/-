@@ -1,0 +1,63 @@
+from py2neo import Graph, Node, Relationship,NodeMatcher
+import pandas as pd
+import csv
+# 连接neo4j数据库，输入地址、用户名、密码
+graph = Graph("http://localhost:7474", user="neo4j", password="love1597534565")
+graph.delete_all() # 清除neo4j中原有的结点等所有信息
+matcher = NodeMatcher(graph)
+
+def if_node_Exist(lbl,node,symptomid):
+    m = matcher.match(lbl).where(symptomid=symptomid).first()
+    if m is None:
+       return False
+    else:   #没有触发？
+       return True
+
+def create_node(data1):
+    for i in range(1,len(data1)):
+        com1_node=Node("com",name=data1[i][0],state=data1[i][8],Province=data1[i][9],ID=data1[i][10],types=data1[i][11],industry=data1[i][12],credit=data1[i][13])
+        com2_node=Node("com",name=data1[i][1],state=data1[i][14],Province=data1[i][15],ID=data1[i][16],types=data1[i][17],industry=data1[i][18],credit=data1[i][19])
+        person_node=Node("person",name=data1[i][4])
+        com3_node=Node("com",name=data1[i][5],state=data1[i][20],Province=data1[i][21],ID=data1[i][22],types=data1[i][23],industry=data1[i][24],credit=data1[i][25])
+        
+        if matcher.match('com').where(name=data1[i][0]).first() is None:
+            graph.create(com1_node)
+        if matcher.match('com').where(name=data1[i][1]).first() is None:
+            graph.create(com2_node)
+        if matcher.match('person').where(name=data1[i][4]).first() is None:    
+            graph.create(person_node)
+        if matcher.match('com').where(name=data1[i][5]).first() is None: 
+            graph.create(com3_node)
+        
+def create_edge(data1):
+    for i in range(1,len(data1)):
+		#properties={'holding_proportion':data1[i][2]}
+		
+        try:
+            properties={'holding_proportion':data1[i][2]}
+            graph.create(
+                Relationship(matcher.match('com').where(name=data1[i][0]).first(),
+                data1[i][3],
+                matcher.match('com').where(name=data1[i][1]).first(),**properties
+                ))
+            properties_1={'holding_proportion/position':data1[i][6]}
+            graph.create(
+                Relationship(matcher.match('person').where(name=data1[i][4]).first(),
+                data1[i][7],
+                matcher.match('com').where(name=data1[i][5]).first(),**properties_1
+                ))
+
+        except Exception as e:
+            print(e)
+
+
+if __name__=="__main__":
+    with open(r'C:\Users\pyy\Desktop\enterprise\aabb425.csv','r',encoding='utf-8') as f:
+        reader = csv.reader(f)
+        data1 = list(reader)
+    
+
+    create_node(data1)
+    create_edge(data1)
+
+    print('done')
